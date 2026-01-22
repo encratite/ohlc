@@ -14,7 +14,7 @@ const (
 	binanceTimestampSwitch = 1735689600000000
 )
 
-func ReadBinanceRecords(symbol string, directory string) []Record {
+func ReadBinance(symbol string, directory string) []Record {
 	paths := commons.GetFiles(directory, ".csv")
 	records := []Record{}
 	for _, path := range paths {
