@@ -9,6 +9,7 @@ type TimeFrame int
 const (
 	TimeFrameD1 TimeFrame = iota
 	TimeFrameH1
+	TimeFrameM30
 	TimeFrameM15
 )
 
