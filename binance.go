@@ -16,10 +16,10 @@ const (
 	binanceTimestampSwitch = 1735689600000000
 )
 
-func ReadBinance(symbol string, directory string, timeFrame TimeFrame) []Record {
+func ReadBinance(symbol string, directory string, timeFrame TimeFrame) ([]Record, error) {
 	symbolDirectory := filepath.Join(directory, symbol)
 	paths := commons.GetFiles(symbolDirectory, ".zip")
-	records := []Record{}
+	recordsMap := map[time.Time]Record{}
 	var timeFrameString string
 	switch timeFrame {
 	case TimeFrameD1:
@@ -31,7 +31,7 @@ func ReadBinance(symbol string, directory string, timeFrame TimeFrame) []Record 
 	case TimeFrameM15:
 		timeFrameString = "15m"
 	default:
-		commons.Fatalf("Unknown time frame in ReadBinance: %d", timeFrame)
+		return nil, fmt.Errorf("Unknown time frame in ReadBinance: %d", timeFrame)
 	}
 	timeFrameFilter := fmt.Sprintf("-%s-", timeFrameString)
 	for _, path := range paths {
@@ -41,16 +41,16 @@ func ReadBinance(symbol string, directory string, timeFrame TimeFrame) []Record 
 		}
 		zipReader, err := zip.OpenReader(path)
 		if err != nil {
-			commons.Fatalf("Unable to read zip file %s: %v", path, err)
+			return nil, fmt.Errorf("Unable to read zip file %s: %v", path, err)
 		}
 		defer zipReader.Close()
 		if len(zipReader.File) != 1 {
-			commons.Fatalf("Unexpected number of files in zip file %s", path)
+			return nil, fmt.Errorf("Unexpected number of files in zip file %s", path)
 		}
 		file := zipReader.File[0]
 		fileReader, err := file.Open()
 		if err != nil {
-			commons.Fatalf("Failed to open .csv file within zip file %s: %v", path, err)
+			return nil, fmt.Errorf("Failed to open .csv file within zip file %s: %v", path, err)
 		}
 		defer fileReader.Close()
 		commons.ReadCSVFile(fileReader, func (row []string) {
@@ -71,14 +71,26 @@ func ReadBinance(symbol string, directory string, timeFrame TimeFrame) []Record 
 				Low: low,
 				Close: close,
 			}
-			records = append(records, record)
+			recordsMap[record.Timestamp] = record
 		})
+	}
+	records := []Record{}
+	for _, record := range recordsMap {
+		records = append(records, record)
 	}
 	slices.SortFunc(records, func (a, b Record) int {
 		return a.Timestamp.Compare(b.Timestamp)
 	})
 	if len(records) == 0 {
-		commons.Fatalf("Failed to load any records for symbol %s", symbol)
+		return nil, fmt.Errorf("Failed to load any records for symbol %s", symbol)
+	}
+	return records, nil
+}
+
+func MustReadBinance(symbol string, directory string, timeFrame TimeFrame) []Record {
+	records, err := ReadBinance(symbol, directory, timeFrame)
+	if err != nil {
+		commons.Fatalf("%v", err)
 	}
 	return records
 }
