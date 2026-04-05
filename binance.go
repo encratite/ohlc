@@ -58,7 +58,7 @@ func ReadBinance(symbol string, directory string, timeFrame TimeFrame) ([]Record
 			return nil, fmt.Errorf("Failed to open .csv file within zip file %s: %v", path, err)
 		}
 		defer fileReader.Close()
-		commons.ReadCSVFile(fileReader, func (row []string) {
+		commons.ReadCSVFile(fileReader, false, func (row []string) {
 			unixTimestamp := commons.MustParseInt64(row[0])
 			if unixTimestamp >= binanceTimestampSwitch {
 				unixTimestamp /= 1000
