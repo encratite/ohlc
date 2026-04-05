@@ -10,18 +10,9 @@ import (
 )
 
 func ReadBarchart(symbol string, directory string, timeFrame TimeFrame) ([]Record, error) {
-	var suffix string
-	switch timeFrame {
-	case TimeFrameD1:
-		suffix = "D1"
-	case TimeFrameH1:
-		suffix = "H1"
-	case TimeFrameM30:
-		suffix = "M30"
-	case TimeFrameM15:
-		suffix = "M15"
-	default:
-		return nil, fmt.Errorf("Unknown time frame: %d", timeFrame)
+	suffix, err := getSuffix(timeFrame)
+	if err != nil {
+		return nil, err
 	}
 	fileName := fmt.Sprintf("%s.%s.csv", symbol, suffix)
 	path := filepath.Join(directory, fileName)
@@ -34,26 +25,26 @@ func ReadBarchart(symbol string, directory string, timeFrame TimeFrame) ([]Recor
 		"close",
 	}
 	line := 2
-	var csvError error
-	commons.ReadCSVColumns(path, columns, func(cells []string) {
+	var csvErr error
+	readErr := commons.ReadCSVColumns(path, columns, func(cells []string) {
 		timestamp, err := commons.ParseTime(cells[0])
 		if err != nil {
-			if csvError != nil {
-				csvError = fmt.Errorf("Invalid timestamp on line %d in file %s", line, path)
+			if csvErr != nil {
+				csvErr = fmt.Errorf("Invalid timestamp on line %d in file %s", line, path)
 			}
 			return
 		}
 		readFloat := func (name string, index int) float64 {
 			value, err := commons.ParseFloat(cells[index])
 			if err != nil {
-				if csvError != nil {
-					csvError = fmt.Errorf("Invalid %s value on line %d in file %s", name, line, path)
+				if csvErr != nil {
+					csvErr = fmt.Errorf("Invalid %s value on line %d in file %s", name, line, path)
 				}
 				return math.NaN()
 			}
 			if value <= 0 {
-				if csvError != nil {
-					csvError = fmt.Errorf("Invalid %s value of %.2f at %s in %s", name, value, commons.GetTimeString(timestamp), path)
+				if csvErr != nil {
+					csvErr = fmt.Errorf("Invalid %s value of %.2f at %s in %s", name, value, commons.GetTimeString(timestamp), path)
 				}
 				return math.NaN()
 			}
@@ -73,8 +64,11 @@ func ReadBarchart(symbol string, directory string, timeFrame TimeFrame) ([]Recor
 		records = append(records, record)
 		line++
 	})
-	if csvError != nil {
-		return nil, csvError
+	if readErr != nil {
+		return nil, readErr
+	}
+	if csvErr != nil {
+		return nil, csvErr
 	}
 	slices.SortFunc(records, func (a, b Record) int {
 		return a.Timestamp.Compare(b.Timestamp)

@@ -18,7 +18,10 @@ const (
 
 func ReadBinance(symbol string, directory string, timeFrame TimeFrame) ([]Record, error) {
 	symbolDirectory := filepath.Join(directory, symbol)
-	paths := commons.GetFiles(symbolDirectory, ".zip")
+	paths, err := commons.GetFiles(symbolDirectory, ".zip")
+	if err != nil {
+		return nil, err
+	}
 	recordsMap := map[time.Time]Record{}
 	var timeFrameString string
 	switch timeFrame {
@@ -30,6 +33,8 @@ func ReadBinance(symbol string, directory string, timeFrame TimeFrame) ([]Record
 		timeFrameString = "30m"
 	case TimeFrameM15:
 		timeFrameString = "15m"
+	case TimeFrameM1:
+		timeFrameString = "1m"
 	default:
 		return nil, fmt.Errorf("Unknown time frame in ReadBinance: %d", timeFrame)
 	}

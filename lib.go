@@ -1,6 +1,7 @@
 package ohlc
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -20,6 +21,7 @@ const (
 	TimeFrameH1
 	TimeFrameM30
 	TimeFrameM15
+	TimeFrameM1
 )
 
 type Record struct {
@@ -149,4 +151,23 @@ func getVolatility(timestamp time.Time, returnsMap map[time.Time]float64, volati
 	}
 	volatility := commons.StdDev(returns)
 	return volatility
+}
+
+func getSuffix(timeFrame TimeFrame) (string, error) {
+	var suffix string
+	switch timeFrame {
+	case TimeFrameD1:
+		suffix = "D1"
+	case TimeFrameH1:
+		suffix = "H1"
+	case TimeFrameM30:
+		suffix = "M30"
+	case TimeFrameM15:
+		suffix = "M15"
+	case TimeFrameM1:
+		suffix = "M1"
+	default:
+		return "", fmt.Errorf("Unknown time frame: %d", timeFrame)
+	}
+	return suffix, nil
 }
