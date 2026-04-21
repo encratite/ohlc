@@ -21,6 +21,7 @@ const (
 	TimeFrameH1
 	TimeFrameM30
 	TimeFrameM15
+	TimeFrameM5
 	TimeFrameM1
 )
 
@@ -164,6 +165,8 @@ func getSuffix(timeFrame TimeFrame) (string, error) {
 		suffix = "M30"
 	case TimeFrameM15:
 		suffix = "M15"
+	case TimeFrameM5:
+		suffix = "M5"
 	case TimeFrameM1:
 		suffix = "M1"
 	default:

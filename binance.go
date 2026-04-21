@@ -59,6 +59,10 @@ func ReadBinance(symbol string, directory string, timeFrame TimeFrame) ([]Record
 		}
 		defer fileReader.Close()
 		commons.ReadCSVFile(fileReader, false, func (row []string) {
+			if row[0] == "open_time" {
+				// It's a futures file which uses a header row
+				return
+			}
 			unixTimestamp := commons.MustParseInt64(row[0])
 			if unixTimestamp >= binanceTimestampSwitch {
 				unixTimestamp /= 1000
