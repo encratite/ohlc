@@ -21,19 +21,23 @@ type futuresRecords struct {
 }
 
 func ReadFutures(symbol, directory, futuresDirectory string, timeFrame TimeFrame) (Futures, error) {
+	dailySuffix, err := getSuffix(TimeFrameD1)
+	if err != nil {
+		return Futures{}, err
+	}
+	dailyFileName := fmt.Sprintf("%s.%s.csv", symbol, dailySuffix)
 	suffix, err := getSuffix(timeFrame)
 	if err != nil {
 		return Futures{}, err
 	}
-	fileName := fmt.Sprintf("%s.%s.csv", symbol, suffix)
-	path := filepath.Join(directory, fileName)
+	dailyPath := filepath.Join(directory, dailyFileName)
 	columns := []string{
 		"symbol",
 		"time",
 	}
 	activeSymbols := map[time.Time]string{}
 	var csvErr error
-	readErr := commons.ReadCSVColumns(path, columns, func(cells []string) {
+	readErr := commons.ReadCSVColumns(dailyPath, columns, func(cells []string) {
 		symbol := cells[0]
 		timestamp, err := commons.ParseTime(cells[1])
 		if err != nil {
@@ -50,6 +54,7 @@ func ReadFutures(symbol, directory, futuresDirectory string, timeFrame TimeFrame
 	if csvErr != nil {
 		return Futures{}, csvErr
 	}
+	fileName := fmt.Sprintf("%s.%s.csv", symbol, suffix)
 	futuresPath := filepath.Join(futuresDirectory, fileName)
 	recordsMap := map[string]*futuresRecords{}
 	ohlcColumns := []string{
@@ -66,7 +71,7 @@ func ReadFutures(symbol, directory, futuresDirectory string, timeFrame TimeFrame
 		timestamp, err := commons.ParseTime(cells[1])
 		if err != nil {
 			if csvErr != nil {
-				csvErr = fmt.Errorf("Invalid timestamp on line %d in file %s", line, path)
+				csvErr = fmt.Errorf("Invalid timestamp on line %d in file %s", line, dailyPath)
 			}
 			return
 		}
@@ -74,13 +79,13 @@ func ReadFutures(symbol, directory, futuresDirectory string, timeFrame TimeFrame
 			value, err := commons.ParseFloat(cells[index])
 			if err != nil {
 				if csvErr != nil {
-					csvErr = fmt.Errorf("Invalid %s value on line %d in file %s", name, line, path)
+					csvErr = fmt.Errorf("Invalid %s value on line %d in file %s", name, line, dailyPath)
 				}
 				return math.NaN()
 			}
 			if value <= 0 {
 				if csvErr != nil {
-					csvErr = fmt.Errorf("Invalid %s value of %.2f at %s in %s", name, value, commons.GetTimeString(timestamp), path)
+					csvErr = fmt.Errorf("Invalid %s value of %.2f at %s in %s", name, value, commons.GetTimeString(timestamp), dailyPath)
 				}
 				return math.NaN()
 			}
@@ -139,18 +144,19 @@ func MustReadFutures(symbol, directory, futuresDirectory string, timeFrame TimeF
 	return futures
 }
 
-func (f *Futures) GetRecords(timestamp time.Time) ([]Record, int, bool) {
-	symbol, exists := f.activeSymbols[timestamp]
+func (f *Futures) GetRecords(timestamp time.Time) ([]Record, int, bool, string) {
+	date := commons.GetDate(timestamp)
+	symbol, exists := f.activeSymbols[date]
 	if !exists {
-		return nil, 0, false
+		return nil, 0, false, ""
 	}
 	fRecords, exists := f.recordsMap[symbol]
 	if !exists {
-		return nil, 0, false
+		return nil, 0, false, ""
 	}
 	index, exists := fRecords.indexes[timestamp]
 	if !exists {
-		return nil, 0, false
+		return nil, 0, false, ""
 	}
-	return fRecords.records, index, true
+	return fRecords.records, index, true, symbol
 }
