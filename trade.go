@@ -74,7 +74,7 @@ func LoadTradingDays(path string) (TradingDays, error) {
 	}
 	finalIndex := len(tradingDates) - 1
 	negativeIndex := -1
-	for i := 1; i < finalIndex; i++ {
+	for i := 0; i < finalIndex; i++ {
 		offset := finalIndex - i
 		date1 := tradingDates[offset]
 		date2 := tradingDates[offset - 1]
@@ -100,7 +100,15 @@ func LoadTradingDays(path string) (TradingDays, error) {
 	return tradingDays, nil
 }
 
+func MustLoadTradingDays(path string) TradingDays {
+	tradingDays, err := LoadTradingDays(path)
+	if err != nil {
+		commons.Fatalf("Failed to load trading days: %v", err)
+	}
+	return tradingDays
+}
+
 func (t *TradingDays) GetIndex(date time.Time) (TradingDayIndex, bool) {
-	index, bool := t.days[date]
-	return index, bool
+	index, exists := t.days[date]
+	return index, exists
 }
