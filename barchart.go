@@ -23,6 +23,7 @@ func ReadBarchart(symbol string, directory string, timeFrame TimeFrame) ([]Recor
 		"high",
 		"low",
 		"close",
+		"volume",
 	}
 	line := 2
 	var csvErr error
@@ -50,16 +51,34 @@ func ReadBarchart(symbol string, directory string, timeFrame TimeFrame) ([]Recor
 			}
 			return value
 		}
+		readInt := func (name string, index int) int {
+			value, err := commons.ParseInt(cells[index])
+			if err != nil {
+				if csvErr != nil {
+					csvErr = fmt.Errorf("Invalid %s value on line %d in file %s", name, line, path)
+				}
+				return 0
+			}
+			if value <= 0 {
+				if csvErr != nil {
+					csvErr = fmt.Errorf("Invalid %s value of %d at %s in %s", name, value, commons.GetTimeString(timestamp), path)
+				}
+				return 0
+			}
+			return value
+		}
 		open := readFloat("open", 1)
 		high := readFloat("high", 2)
 		low := readFloat("low", 3)
 		close := readFloat("close", 4)
+		volume := readInt("volume", 5)
 		record := Record{
 			Timestamp: timestamp,
 			Open: open,
 			High: high,
 			Low: low,
 			Close: close,
+			Volume: volume,
 		}
 		records = append(records, record)
 		line++

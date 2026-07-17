@@ -31,6 +31,7 @@ type Record struct {
 	High float64 `yaml:"high"`
 	Low float64 `yaml:"low"`
 	Close float64 `yaml:"close"`
+	Volume int `yaml:"volume"`
 }
 
 func RiskParity(series [][]Record, weights []float64, step time.Duration, volatilityWindow time.Duration) []Record {
